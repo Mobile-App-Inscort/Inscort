@@ -13,3 +13,9 @@ captures/
 # Keystore
 *.jks
 *.keystore
+
+# Gradle build
+/build/
+
+# Kotlin/IDE tmp
+.kotlin/
