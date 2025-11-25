@@ -1,0 +1,21 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+/.idea/
+.build/
+app/build/
+captures/
+
+# Firebase
+**/google-services.json
+
+# Keystore
+*.jks
+*.keystore
+
+# Gradle build
+/build/
+
+# Kotlin/IDE tmp
+.kotlin/
