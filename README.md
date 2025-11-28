@@ -111,7 +111,7 @@ Inscort/
 ## 백엔드 실행
 
 ```bash
-cd backend
+cd python-server
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
