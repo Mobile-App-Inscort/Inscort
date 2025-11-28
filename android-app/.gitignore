@@ -64,21 +64,4 @@ app/build/
 # Windows
 Thumbs.db
 
-# === Python OCR server ===
-python-server/__pycache__/
-python-server/*.pyc
-python-server/.venv/
-python-server/venv/
-python-server/.mypy_cache/
 
-# === Node (혹시 추가될 경우 대비) ===
-node_modules/
-
-# === Signing keys (절대 올리면 안됨) ===
-*.keystore
-*.jks
-key.properties
-
-# === Misc ===
-.env
-.env.*
