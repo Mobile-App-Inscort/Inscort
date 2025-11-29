@@ -16,7 +16,7 @@ python-server/
  │    ├── instagram_crawler.py
  │    ├── image_downloader.py
  │    └── cookies/
- │          └── prod_cookies.json   (Git 미포함)
+ │          └── cookies.json   (Git 미포함)
  ├── aws/
  │    └── s3_utils.py
  ├── requirements.txt
@@ -64,7 +64,7 @@ Git에 포함되지 않은 파일들은 팀 노션에 업로드되어 있습니�
 
 ---
 
-## 실행 방법
+## 🛠 실행 방법
 
 ### 1) Python 3.11 기반 가상환경 생성
 
