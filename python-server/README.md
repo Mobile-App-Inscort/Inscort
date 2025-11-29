@@ -1,9 +1,11 @@
+# 📘 Instagram Crawler Flask Server – Setup Guide
+
 이 문서는 Instagram 게시물 이미지 크롤링 → S3 업로드를 수행하는  
 Flask 기반 python-server 실행 방법을 정리한 가이드입니다.
 
 ---
 
-## 프로젝트 구조
+## 📁 프로젝트 구조
 
 ```
 python-server/
@@ -24,7 +26,7 @@ python-server/
 
 ---
 
-## 사전 요구사항
+## ⚠️ 사전 요구사항
 
 ### 1) Python 3.11.x 필수  
 undetected-chromedriver는 Python 3.12를 지원하지 않기 때문에  
@@ -58,7 +60,7 @@ Access Key / Secret Key가 필요합니다.
 python-server/crawler/cookies/cookies.json
 ```
 
-이 파일은 Git에 포함되지 않으며 팀 노션에 업로드되어 있습니다.
+Git에 포함되지 않은 파일들은 팀 노션에 업로드되어 있습니다.
 
 ---
 
