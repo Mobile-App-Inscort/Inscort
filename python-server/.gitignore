@@ -2,3 +2,8 @@ venv/
 .env
 __pycache__/
 *.pyc
+crawler/cookies/
+
+.venv/
+env/
+ENV/
