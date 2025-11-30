@@ -8,5 +8,6 @@ import androidx.room.PrimaryKey
 data class CourseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val title: String,
-    val description: String?
+    val description: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
 )

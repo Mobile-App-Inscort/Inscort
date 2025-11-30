@@ -1,1 +1,71 @@
 /build
+# ========================
+# 🤖 Android & Gradle
+# ========================
+*.iml
+.gradle/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android Build artifacts
+build/
+app/build/
+.gradle/
+
+# Keystore files (보안상 절대 올리면 안 됨)
+*.jks
+*.keystore
+*.key
+
+# Google Services (Firebase 쓰면 이것도 가리는 게 좋음, 공개 레포라면)
+google-services.json
+
+# ========================
+# 🐍 Python (Backend)
+# ========================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments (가상환경)
+venv/
+env/
+ENV/
+.venv/
+
+# Environment Variables (키 숨기는 파일)
+.env
+.flaskenv
+
+# Selenium drivers (드라이버 파일은 용량이 크고 OS마다 달라서 제외)
+chromedriver
+geckodriver
+*.exe
+*.log
+
+# ========================
+# 🛠️ IDE & OS
+# ========================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VS Code
+.vscode/
