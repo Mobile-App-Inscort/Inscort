@@ -2,18 +2,30 @@
 package com.example.inscort.data.local.dao
 
 import androidx.room.*
+import com.example.inscort.data.local.entity.CoursePlaceCrossRef
+import com.example.inscort.data.local.entity.CourseEntity
 import com.example.inscort.data.local.entity.PlaceEntity
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaceDao {
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(place: PlaceEntity): Long
+    // 코스 ID에 해당하는 장소들을 순서대로 가져오는 쿼리
+    // (CoursePlaceCrossRef 테이블과 조인해서 가져옴)
+    @Query("""
+        SELECT * FROM places 
+        INNER JOIN course_place_cross_ref 
+        ON places.id = course_place_cross_ref.placeId 
+        WHERE course_place_cross_ref.courseId = :courseId 
+        ORDER BY course_place_cross_ref.orderIndex ASC
+    """)
+    suspend fun getPlacesByCourseId(courseId: Long): List<PlaceEntity>
 
     @Query("SELECT * FROM places")
-    fun getAllPlaces(): Flow<List<PlaceEntity>>
+    suspend fun getAllPlaces(): List<PlaceEntity>
 
-    @Delete
-    suspend fun delete(place: PlaceEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCourse(course: CourseEntity): Long
+
+    // 코스-장소 연결 정보 저장
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCoursePlace(crossRef: CoursePlaceCrossRef)
 }
