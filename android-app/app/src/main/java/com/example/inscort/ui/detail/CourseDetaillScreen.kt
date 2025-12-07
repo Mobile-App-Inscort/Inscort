@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inscort.R
 import com.example.inscort.data.api.KakaoNaviApi
+import com.example.inscort.data.api.KakaoRetrofitProvider
 import com.example.inscort.data.local.db.AppDatabase
 import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.ui.common.KakaoMapController
@@ -25,7 +26,9 @@ fun CourseDetailScreen(
     val context = LocalContext.current
     val repository = remember {
         val db = AppDatabase.getInstance(context)
-        PlaceRepository(db.placeDao(), KakaoNaviApi.create())
+        PlaceRepository(db.placeDao(),
+            KakaoNaviApi.create(),
+            localApi = KakaoRetrofitProvider.localApi)
     }
 
     val viewModel: CourseDetailViewModel = viewModel(

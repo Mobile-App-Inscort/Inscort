@@ -40,6 +40,7 @@ import com.example.inscort.data.repository.PlaceRepository
 // ▼▼▼ [변경] 새로운 라이브러리 import ▼▼▼
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.example.inscort.data.api.KakaoRetrofitProvider
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -51,7 +52,10 @@ fun CourseBuilderScreen(
     val context = LocalContext.current
     val repository = remember {
         val db = AppDatabase.getInstance(context)
-        PlaceRepository(db.placeDao(), KakaoNaviApi.create())
+        PlaceRepository(
+            db.placeDao(),
+            KakaoNaviApi.create(),
+            localApi = KakaoRetrofitProvider.localApi)
     }
 
     val viewModel: CourseBuilderViewModel = viewModel(

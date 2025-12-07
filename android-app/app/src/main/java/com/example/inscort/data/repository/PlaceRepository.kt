@@ -1,6 +1,7 @@
 package com.example.inscort.data.repository
 
 import android.util.Log
+import com.example.inscort.BuildConfig
 import com.example.inscort.data.local.entity.CoursePlaceCrossRef
 import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
@@ -15,8 +16,7 @@ class PlaceRepository(
     private val placeDao: PlaceDao,
     private val naviApi: KakaoNaviApi,
     private val localApi: KakaoLocalApi,   // ← 추가
-    private val kakaoApiKey: String,
-    kakaoApiKey = BuildConfig.KAKAO_REST_API_KEY
+    private val kakaoApiKey: String = BuildConfig.KAKAO_REST_API_KEY
 ) {
     // 1. 모든 장소 가져오기 (에러 났던 부분 해결)
     suspend fun getAllPlaces(): List<Place> = withContext(Dispatchers.IO) {
@@ -70,7 +70,7 @@ class PlaceRepository(
             } else null
 
             val response = naviApi.getDirections(
-                apiKey = "KakaoAK YOUR_API_KEY",
+                apiKey = "KakaoAK \$kakaoApiKey",
                 origin = origin,
                 destination = destination,
                 waypoints = waypoints
