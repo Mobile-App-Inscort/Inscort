@@ -14,6 +14,12 @@ import com.example.inscort.core.model.Place
 import com.example.inscort.ui.builder.CourseBuilderScreen
 import com.example.inscort.ui.detail.CourseDetailScreen
 import com.example.inscort.ui.explore.ExploreScreen // [중요] 우리가 만든 화면 Import
+import com.example.inscort.core.ocr.OcrService
+import com.example.inscort.data.repository.MlKitOcrService
+import com.example.inscort.data.repository.PlaceRepository
+import com.example.inscort.ui.explore.CourseDiscoveryViewModel
+import com.example.inscort.ui.explore.OcrTestScreen
+import com.example.inscort.ui.theme.InscortTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 

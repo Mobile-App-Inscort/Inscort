@@ -14,7 +14,10 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     properties.load(localPropertiesFile.inputStream())
 }
-val kakaoKey = properties.getProperty("KAKAO_NATIVE_APP_KEY") ?: ""
+
+val kakaoNativeKey = properties.getProperty("KAKAO_NATIVE_APP_KEY") ?: ""
+val kakaoRestKey = properties.getProperty("KAKAO_REST_API_KEY") ?: ""
+
 
 android {
     namespace = "com.example.inscort"
@@ -28,8 +31,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoKey
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoKey\"")
+
+        buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
     }
 
     buildTypes {
@@ -67,6 +73,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
     implementation("sh.calvin.reorderable:reorderable:2.4.1")
     implementation("androidx.navigation:navigation-compose:2.8.0")
+
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
 
     implementation(libs.androidx.core.ktx)
