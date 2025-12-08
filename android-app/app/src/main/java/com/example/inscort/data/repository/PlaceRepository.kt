@@ -5,6 +5,7 @@ import com.example.inscort.BuildConfig
 import com.example.inscort.data.local.entity.CoursePlaceCrossRef
 import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
+import com.example.inscort.core.model.NaviResponse
 import com.example.inscort.data.local.dao.PlaceDao
 import com.example.inscort.data.local.entity.CourseEntity
 import com.example.inscort.data.local.entity.PlaceEntity
@@ -57,7 +58,7 @@ class PlaceRepository(
     }
 
     // ▼▼▼ [추가] 장소를 DB에 저장하는 함수 ▼▼▼
-    suspend fun insertPlace(place: Place) = withContext(Dispatchers.IO) {
+    suspend fun insertPlace(place: Place): Long = withContext(Dispatchers.IO) {
         // UI용 모델(Place) -> DB용 모델(PlaceEntity) 변환
         val entity = PlaceEntity(
             id = place.id, // (Entity의 PK 이름이 id면 id로 수정하세요)
@@ -68,10 +69,10 @@ class PlaceRepository(
             sourceUrl = place.sourceUrl
             // 필요한 필드 다 채우기
         )
-        placeDao.insertPlace(entity)
+        return@withContext placeDao.insertPlace(entity)
     }
 
-    // 3. 길찾기 경로 가져오기 (기존 코드 유지)
+    // 3. 길찾기 경로 가져오기 (Kakao Navi Directions)
     suspend fun getRoute(places: List<Place>): List<Pair<Double, Double>> = withContext(Dispatchers.IO) {
         if (places.size < 2) return@withContext emptyList()
 
@@ -85,29 +86,30 @@ class PlaceRepository(
                 }
             } else null
 
-            val response = naviApi.getDirections(
-                apiKey = "KakaoAK \$kakaoApiKey",
+            val response: NaviResponse = naviApi.getDirections(
+                apiKey = "KakaoAK $kakaoApiKey",
                 origin = origin,
                 destination = destination,
                 waypoints = waypoints
             )
 
-            val linePoints = mutableListOf<Pair<Double, Double>>()
-
-            response.routes.forEach { route ->
-                route.sections.forEach { section ->
+            val points = mutableListOf<Pair<Double, Double>>()
+            response.routes.firstOrNull()
+                ?.sections
+                ?.forEach { section ->
                     section.roads.forEach { road ->
-                        val rawCoords = road.vertexes
-                        for (i in rawCoords.indices step 2) {
-                            linePoints.add(Pair(rawCoords[i + 1], rawCoords[i]))
+                        val raw = road.vertexes
+                        for (i in raw.indices step 2) {
+                            val lng = raw[i]
+                            val lat = raw.getOrNull(i + 1) ?: continue
+                            points.add(Pair(lat, lng))
                         }
                     }
                 }
-            }
-            return@withContext linePoints
+            return@withContext points
 
         } catch (e: Exception) {
-            Log.e("PlaceRepository", "Error: ${e.message}")
+            Log.e("PlaceRepository", "getRoute error: ${e.message}")
             return@withContext emptyList()
         }
     }

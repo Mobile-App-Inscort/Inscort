@@ -27,6 +27,7 @@ class CourseDetailViewModel(
         viewModelScope.launch {
             // (1) DB에서 장소 리스트 가져오기
             val loadedPlaces = repository.getPlacesByCourseId(courseId)
+            Log.d("CourseDetailViewModel", "loadedPlaces size=${loadedPlaces.size}")
             _places.value = loadedPlaces
 
             // TODO: CourseEntity도 가져와서 title 채우는 로직 추가 필요

@@ -13,7 +13,9 @@ import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
 import com.kakao.vectormap.label.Label
 import com.kakao.vectormap.label.LabelLayer
-
+import com.kakao.vectormap.route.RouteLineStylesSet
+// ▼▼▼ 경로(Route) 관련 import 필수! ▼▼▼
+import com.kakao.vectormap.route.RouteLineLayer
 class KakaoMapController(private val kakaoMap: KakaoMap) {
 
     /**
@@ -49,7 +51,6 @@ class KakaoMapController(private val kakaoMap: KakaoMap) {
         // 옵션 생성
         val options = LabelOptions.from(LatLng.from(lat, lng))
             .setStyles(LabelStyles.from(style))
-            .setTexts(name)
             .setTag(name)
 
         // [핵심] 지도에 추가하고 로그 찍기
@@ -76,15 +77,38 @@ class KakaoMapController(private val kakaoMap: KakaoMap) {
      */
     fun drawRoute(points: List<Pair<Double, Double>>) {
         val routeLineManager = kakaoMap.routeLineManager ?: return
-        val layer = routeLineManager.layer ?: return
 
+        // [수정] 안전하게 레이어 가져오기 (엘비스 연산자 제거하고 단계별 확인)
+        var layer = routeLineManager.getLayer("routeLayer")
+
+
+        if (layer == null) {
+            layer = routeLineManager.addLayer("routeLayer")  // ✔️ 이렇게 문자열만 넣으면 됨
+        }
+
+        // [핵심] 그래도 layer가 null이면 그리지 말고 멈춥니다. (앱 종료 방지!)
+        if (layer == null) {
+            Log.e("KakaoMap", "경로 레이어 생성 실패! (RouteLineLayer is null)")
+            return
+        }
+
+        // (2) 기존 경로 지우기
+        layer.removeAll()
+
+        // (3) 선 스타일 만들기 (파란색, 두께 16px)
         val style = RouteLineStyle.from(16f, android.graphics.Color.BLUE)
+        val stylesSet = RouteLineStylesSet.from(RouteLineStyles.from(style))
 
+        // (4) 좌표 변환
         val latLngs = points.map { LatLng.from(it.first, it.second) }
-        val segment = RouteLineSegment.from(latLngs, RouteLineStyles.from(style))
-        val options = RouteLineOptions.from(segment)
 
-        layer.addRouteLine(options)
+        // (5) 세그먼트 생성
+        val segment = RouteLineSegment.from(latLngs, style)
+
+        // (6) 지도에 추가
+        layer.addRouteLine(
+            RouteLineOptions.from(segment).setStylesSet(stylesSet)
+        )
     }
 
     /**

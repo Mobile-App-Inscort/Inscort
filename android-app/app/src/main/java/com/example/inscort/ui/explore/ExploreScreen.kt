@@ -39,6 +39,7 @@ import com.example.inscort.ui.common.KakaoMapController
 import com.example.inscort.ui.common.KakaoMapView
 import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +48,8 @@ fun ExploreScreen(
     onNavigateToBuilder: (List<Place>) -> Unit
 ) {
     val context = LocalContext.current
-
+    val scaffoldState = rememberBottomSheetScaffoldState()
+    val scope = rememberCoroutineScope()
     // ✅ 옵션 A: ExploreViewModel → CourseDiscoveryViewModel 로 교체
     val viewModel: CourseDiscoveryViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
@@ -101,21 +103,21 @@ fun ExploreScreen(
         if (places.isNotEmpty() && mapController != null) {
             mapController?.clear()
 
-            val coords = places.map { it.latitude to it.longitude }
-            mapController?.addMarkers(coords, R.drawable.ic_marker)
+            // 각 Place의 이름을 Tag로 심어서 마커 생성
+            places.forEach { place ->
+                mapController?.addMarker(
+                    lat = place.latitude,
+                    lng = place.longitude,
+                    name = place.name,              // ★ Tag = Place.name
+                    iconResId = R.drawable.ic_marker
+                )
+            }
 
+            // 첫 번째 장소로 카메라 이동
             mapController?.moveCamera(places[0].latitude, places[0].longitude)
-
-            android.util.Log.d("MapDebug", "마커 찍기 성공! 지도 준비됨.")
-        } else {
-            android.util.Log.d(
-                "MapDebug",
-                "대기 중... (데이터: ${places.size}개, 지도: ${if (mapController == null) "X" else "O"})"
-            )
         }
     }
 
-    val scaffoldState = rememberBottomSheetScaffoldState()
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -156,13 +158,25 @@ fun ExploreScreen(
                     // ▼▼▼ [HEAD와 Incoming 기능 병합] ▼▼▼
                     // 1. 마커 클릭 리스너 등록 (HEAD 기능)
                     controller.setOnMarkerClickListener { markerName ->
-                        // 이름으로 장소 찾아서 선택 상태 토글
                         val clickedPlace = places.find { it.name == markerName }
                         if (clickedPlace != null) {
+                            // 1) 선택 토글 (기존 로직 유지)
                             if (selectedPlaces.contains(clickedPlace)) {
                                 selectedPlaces.remove(clickedPlace)
                             } else {
                                 selectedPlaces.add(clickedPlace)
+                            }
+
+                            // 2) 카메라를 해당 장소로 이동 (줌 인)
+                            controller.moveCamera(
+                                lat = clickedPlace.latitude,
+                                lng = clickedPlace.longitude,
+                                zoomLevel = 17
+                            )
+
+                            // 3) 바텀시트를 펼쳐서 상세 정보 보이게
+                            scope.launch {
+                                scaffoldState.bottomSheetState.expand()
                             }
                         }
                     }

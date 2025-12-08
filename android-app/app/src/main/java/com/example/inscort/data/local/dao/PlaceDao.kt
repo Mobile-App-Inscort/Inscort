@@ -30,5 +30,5 @@ interface PlaceDao {
     suspend fun insertCoursePlace(crossRef: CoursePlaceCrossRef)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) // 이미 있는 장소면 덮어쓰기
-    suspend fun insertPlace(place: PlaceEntity)
+    suspend fun insertPlace(place: PlaceEntity): Long
 }

@@ -1,6 +1,7 @@
 package com.example.inscort.ui.detail
 
 import CourseDetailViewModel
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +40,7 @@ import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.ui.common.KakaoMapController
 import com.example.inscort.ui.common.KakaoMapView
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
     courseId: Long,
@@ -58,6 +65,7 @@ fun CourseDetailScreen(
 
     // 데이터 로드
     LaunchedEffect(courseId) {
+        Log.d("CourseDetailScreen", "loadCourse courseId=$courseId")
         viewModel.loadCourse(courseId)
     }
 
@@ -69,16 +77,22 @@ fun CourseDetailScreen(
 
     // 지도 그리기 (마커 + 경로)
     LaunchedEffect(places, routePoints, mapController) {
+        Log.d(
+            "CourseDetailScreen",
+            "draw map: places=${places.size}, routePoints=${routePoints.size}, controller=${mapController != null}"
+        )
         if (places.isNotEmpty() && mapController != null) {
             mapController?.clear()
 
             // 1. 마커 찍기 (순서 번호 포함)
             // TODO: 마커 아이콘을 순서별로 다르게 하거나(1,2,3..) 텍스트 추가 필요
             val coords = places.map { Pair(it.latitude, it.longitude) }
+            Log.d("CourseDetailScreen", "addMarkers coords=$coords")
             mapController?.addMarkers(coords, com.example.inscort.R.drawable.ic_marker)
 
             // 2. 경로 그리기 (데이터가 왔을 때만)
             if (routePoints.isNotEmpty()) {
+                Log.d("CourseDetailScreen", "drawRoute points=${routePoints.size}")
                 mapController?.drawRoute(routePoints)
             }
 
@@ -87,39 +101,22 @@ fun CourseDetailScreen(
         }
     }
 
-    // 전체 화면 구조 (지도 위에 정보창이 올라온 형태)
-    Box(modifier = Modifier.fillMaxSize()) {
+    val bottomSheetState = rememberBottomSheetScaffoldState(
+        bottomSheetState = SheetState(
+            skipHiddenState = true,
+            skipPartiallyExpanded = false,
+            initialValue = SheetValue.PartiallyExpanded,
+            positionalThreshold = { 0.5f },
+            velocityThreshold = { 125f }
+        )
+    )
 
-        // [1] 배경 지도 (화면의 40% 정도 차지)
-        Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
-            KakaoMapView(
-                modifier = Modifier.fillMaxSize(),
-                onMapReady = { mapController = KakaoMapController(it) }
-            )
-
-            // 뒤로가기 버튼
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .padding(top = 48.dp, start = 16.dp)
-                    .size(40.dp)
-                    .background(Color.White, CircleShape)
-                    .shadow(4.dp, CircleShape)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "back")
-            }
-        }
-
-        // [2] 하단 상세 정보 시트 (스크롤 가능)
-        // DraggableScrollableSheet 등을 써도 되지만, 간단하게 Card로 구현
-        Card(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 300.dp), // 지도 위로 겹쳐 올라오게
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
+    BottomSheetScaffold(
+        scaffoldState = bottomSheetState,
+        sheetPeekHeight = 220.dp,
+        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        sheetContainerColor = Color(0xFFFAFAFA),
+        sheetContent = {
             Column(modifier = Modifier.padding(20.dp)) {
 
                 // 핸들 바
@@ -202,6 +199,33 @@ fun CourseDetailScreen(
                         Spacer(modifier = Modifier.height(30.dp))
                     }
                 }
+            }
+        }
+    ) { paddingValues ->
+        // [1] 배경 지도
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            KakaoMapView(
+                modifier = Modifier.fillMaxSize(),
+                onMapReady = {
+                    Log.d("CourseDetailScreen", "onMapReady")
+                    mapController = KakaoMapController(it)
+                }
+            )
+
+            // 뒤로가기 버튼
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .padding(top = 48.dp, start = 16.dp)
+                    .size(40.dp)
+                    .background(Color.White, CircleShape)
+                    .shadow(4.dp, CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "back")
             }
         }
     }
