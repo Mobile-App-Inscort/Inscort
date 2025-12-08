@@ -1,18 +1,23 @@
 package com.example.inscort.data.repository
 
 import android.util.Log
+import com.example.inscort.BuildConfig
 import com.example.inscort.data.local.entity.CoursePlaceCrossRef
 import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
 import com.example.inscort.data.local.dao.PlaceDao
 import com.example.inscort.data.local.entity.CourseEntity
 import com.example.inscort.data.local.entity.PlaceEntity
+import com.example.inscort.core.ocr.PlaceCandidate
+import com.example.inscort.data.api.KakaoLocalApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class PlaceRepository(
     private val placeDao: PlaceDao,
-    private val naviApi: KakaoNaviApi
+    private val naviApi: KakaoNaviApi,
+    private val localApi: KakaoLocalApi,   // ← 추가
+    private val kakaoApiKey: String = BuildConfig.KAKAO_REST_API_KEY
 ) {
     // 1. 모든 장소 가져오기 (에러 났던 부분 해결)
     suspend fun getAllPlaces(): List<Place> = withContext(Dispatchers.IO) {
@@ -81,7 +86,7 @@ class PlaceRepository(
             } else null
 
             val response = naviApi.getDirections(
-                apiKey = "KakaoAK YOUR_API_KEY",
+                apiKey = "KakaoAK \$kakaoApiKey",
                 origin = origin,
                 destination = destination,
                 waypoints = waypoints
@@ -106,4 +111,32 @@ class PlaceRepository(
             return@withContext emptyList()
         }
     }
+
+    suspend fun searchPlacesFromCandidates(
+        candidates: List<PlaceCandidate>
+    ): List<Place> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<Place>()
+
+        for (candidate in candidates) {
+            val response = localApi.searchKeyword(
+                auth = "KakaoAK $kakaoApiKey",
+                query = candidate.query,
+                size = 1
+            )
+
+            val doc = response.documents.firstOrNull() ?: continue
+            Log.d("PlaceRepository", "query=${candidate.query}, result=${doc.place_name}")
+
+            result += Place(
+                id = 0L, // 아직 DB에 없는 애들이라 0L 같은 더미 ID
+                name = doc.place_name,
+                address = doc.road_address_name?.takeIf { it.isNotEmpty() } ?: doc.address_name,
+                latitude = doc.y.toDouble(),
+                longitude = doc.x.toDouble(),
+                sourceUrl = null   // 필요하면 place_url 필드 추가해서 넣기
+            )
+        }
+        result
+    }
+
 }
