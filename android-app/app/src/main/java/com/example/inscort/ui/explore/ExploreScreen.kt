@@ -38,6 +38,7 @@ import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.ui.common.KakaoMapController
 import com.example.inscort.ui.common.KakaoMapView
 import android.graphics.BitmapFactory
+import com.example.inscort.data.api.PythonRetrofitProvider
 import com.google.mlkit.vision.common.InputImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +66,8 @@ fun ExploreScreen(
                 )
                 return CourseDiscoveryViewModel(
                     ocrService = ocrService,
-                    placeRepository = placeRepository
+                    placeRepository = placeRepository,
+                    crawlerApi = PythonRetrofitProvider.crawlerApi
                 ) as T
             }
         }

@@ -1,18 +1,24 @@
 package com.example.inscort.ui.explore
 
-
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.inscort.core.ocr.OcrService
 import com.example.inscort.core.ocr.OcrResult
+import com.example.inscort.core.ocr.OcrService
 import com.example.inscort.core.ocr.toPlaceCandidates
 import com.example.inscort.core.model.Place
+import com.example.inscort.data.api.CrawlRequest
+import com.example.inscort.data.api.CrawlerApi
 import com.example.inscort.data.repository.PlaceRepository
 import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 data class OcrUiState(
     val loading: Boolean = false,
     val results: List<OcrResult> = emptyList(),
@@ -23,7 +29,8 @@ data class OcrUiState(
 
 class CourseDiscoveryViewModel(
     private val ocrService: OcrService,
-    private val placeRepository: PlaceRepository
+    private val placeRepository: PlaceRepository,
+    private val crawlerApi: CrawlerApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OcrUiState())
@@ -60,4 +67,54 @@ class CourseDiscoveryViewModel(
             }
         }
     }
+    fun crawlAndRunOcr(instagramUrl: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                loading = true,
+                errorMessage = null
+            )
+
+            try {
+                // 1) Python 서버 /crawl 호출
+                val crawlResponse = crawlerApi.crawl(CrawlRequest(instagramUrl))
+
+                // 2) presigned URL → Bitmap → InputImage 변환
+                val imagePairs: List<Pair<InputImage, String>> =
+                    withContext(Dispatchers.IO) {
+                        crawlResponse.images.map { img ->
+                            val bitmap = downloadBitmap(img.url)
+                            val inputImage = InputImage.fromBitmap(bitmap, 0)
+                            inputImage to img.url
+                        }
+                    }
+
+                // 3) ML Kit OCR 수행
+                val ocrResults = ocrService.recognizeImages(imagePairs)
+
+                // 4) 텍스트에서 장소 후보 추출 후 Kakao 검색
+                val candidates = ocrResults.flatMap { it.toPlaceCandidates() }
+                val suggestions = placeRepository.searchPlacesFromCandidates(candidates)
+
+                _uiState.value = _uiState.value.copy(
+                    loading = false,
+                    results = ocrResults,
+                    placeSuggestions = suggestions
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    loading = false,
+                    errorMessage = e.message ?: "크롤링 / OCR 실패"
+                )
+            }
+        }
+    }
+
+    // URL → Bitmap 간단 유틸
+    private suspend fun downloadBitmap(url: String): Bitmap =
+        withContext(Dispatchers.IO) {
+            val conn = URL(url).openConnection() as HttpURLConnection
+            conn.inputStream.use { input ->
+                BitmapFactory.decodeStream(input)
+            }
+        }
 }
