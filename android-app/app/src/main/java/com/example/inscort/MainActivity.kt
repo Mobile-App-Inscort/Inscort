@@ -23,6 +23,7 @@ import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.core.ocr.OcrService
 import com.example.inscort.ui.explore.CourseDiscoveryViewModel
 import com.example.inscort.ui.explore.InstagramLinkScreen
+import com.example.inscort.ui.explore.OcrTestScreen
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -90,7 +91,13 @@ class MainActivity : ComponentActivity() {
                         composable("instagram-link") {
                             InstagramLinkScreen(
                                 viewModel = courseDiscoveryViewModel,
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToExplore = {
+                                    navController.navigate("explore") {
+                                        // 인스타 화면은 스택에서 날리고 탐색을 루트처럼 만들고 싶으면
+                                        popUpTo("instagram-link") { inclusive = true }
+                                    }
+                                }
                             )
                         }
 

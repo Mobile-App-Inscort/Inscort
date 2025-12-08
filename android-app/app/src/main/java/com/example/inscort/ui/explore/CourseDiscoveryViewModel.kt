@@ -10,6 +10,7 @@ import com.example.inscort.core.ocr.toPlaceCandidates
 import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.CrawlRequest
 import com.example.inscort.data.api.CrawlerApi
+import com.example.inscort.data.api.PythonRetrofitProvider
 import com.example.inscort.data.repository.PlaceRepository
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
@@ -19,18 +20,29 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+
+enum class AnalysisStep(val order: Int) {
+    Idle(0),
+    CrawlingImages(1),
+    Ocr(2),
+    PlaceParsing(3),
+    Mapping(4),
+    Done(5)
+}
 data class OcrUiState(
     val loading: Boolean = false,
     val results: List<OcrResult> = emptyList(),
     val placeSuggestions: List<Place> = emptyList(),   // ← 타입 변경
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val step: AnalysisStep = AnalysisStep.Idle,
+    val progress: Int = 0
 )
 
 
 class CourseDiscoveryViewModel(
     private val ocrService: OcrService,
     private val placeRepository: PlaceRepository,
-    private val crawlerApi: CrawlerApi
+    private val crawlerApi: CrawlerApi = PythonRetrofitProvider.crawlerApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OcrUiState())
@@ -71,12 +83,19 @@ class CourseDiscoveryViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 loading = true,
-                errorMessage = null
+                errorMessage = null,
+                step = AnalysisStep.CrawlingImages,
+                progress = 10
             )
 
             try {
                 // 1) Python 서버 /crawl 호출
                 val crawlResponse = crawlerApi.crawl(CrawlRequest(instagramUrl))
+
+                _uiState.value = _uiState.value.copy(
+                    step = AnalysisStep.Ocr,
+                    progress = 40
+                )
 
                 // 2) presigned URL → Bitmap → InputImage 변환
                 val imagePairs: List<Pair<InputImage, String>> =
@@ -91,6 +110,11 @@ class CourseDiscoveryViewModel(
                 // 3) ML Kit OCR 수행
                 val ocrResults = ocrService.recognizeImages(imagePairs)
 
+                _uiState.value = _uiState.value.copy(
+                    step = AnalysisStep.PlaceParsing,
+                    progress = 70
+                )
+
                 // 4) 텍스트에서 장소 후보 추출 후 Kakao 검색
                 val candidates = ocrResults.flatMap { it.toPlaceCandidates() }
                 val suggestions = placeRepository.searchPlacesFromCandidates(candidates)
@@ -98,12 +122,16 @@ class CourseDiscoveryViewModel(
                 _uiState.value = _uiState.value.copy(
                     loading = false,
                     results = ocrResults,
-                    placeSuggestions = suggestions
+                    placeSuggestions = suggestions,
+                    step = AnalysisStep.Done,
+                    progress = 100
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     loading = false,
-                    errorMessage = e.message ?: "크롤링 / OCR 실패"
+                    errorMessage = e.message ?: "크롤링 / OCR 실패",
+                    step = AnalysisStep.Idle,
+                    progress = 0
                 )
             }
         }

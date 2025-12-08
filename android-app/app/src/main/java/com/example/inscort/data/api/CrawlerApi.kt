@@ -24,7 +24,7 @@ data class CrawlResponse(
 interface CrawlerApi {
 
     @Headers("Content-Type: application/json")
-    @POST("crawl")
+    @POST("/api/crawl")
     suspend fun crawl(
         @Body body: CrawlRequest
     ): CrawlResponse

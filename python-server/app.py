@@ -1,10 +1,12 @@
 # app.py
+from dotenv import load_dotenv
+load_dotenv()
+
+import traceback
 from flask import Flask, request, jsonify
 from services.crawler_service import CrawlerService
-from dotenv import load_dotenv
 from services.s3_service import generate_presigned_url
 
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -20,6 +22,8 @@ def crawl():
         result = CrawlerService.crawl_and_upload(url)
         return jsonify(result)
     except Exception as e:
+        print("[ERROR] /api/crawl failed")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     
 @app.route("/api/presigned", methods=["POST"])

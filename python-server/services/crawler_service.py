@@ -9,11 +9,15 @@ class CrawlerService:
     @staticmethod
     def crawl_and_upload(url: str):
         cookie_path = os.getenv("COOKIE_PATH")
+        print("[DEBUG] COOKIE_PATH =", repr(cookie_path))
+
         crawler = InstagramCrawler(headless=True)
         crawler.load_cookies(cookie_path)
 
         # 1) 크롤링
+        print("[DEBUG] start crawl:", url)
         image_urls = crawler.crawl(url)
+        print("[DEBUG] crawled images:", len(image_urls))
         crawler.close()
 
         # 2) post_id 추출
@@ -26,8 +30,9 @@ class CrawlerService:
         prefix = f"instagram/posts/{post_id}"
 
         # 4) 업로드
+        print("[DEBUG] upload to s3 prefix:", prefix)
         s3_keys = download_and_upload_to_s3(image_urls, prefix)
-
+        print("[DEBUG] uploaded keys:", s3_keys)
         # ⭐ 5) presigned URL 만들기
         images = []
         for key in s3_keys:
