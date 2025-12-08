@@ -76,7 +76,9 @@ source venv/bin/activate
 Windows:
 
 ```
-venv\Scripts\activate
+py -3.11 -m venv venv
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\venv\Scripts\Activate.ps1
 ```
 
 ---

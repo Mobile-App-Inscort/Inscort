@@ -5,12 +5,19 @@ import android.content.pm.PackageManager
 import android.util.Base64
 import android.util.Log
 import com.example.inscort.BuildConfig
+import com.example.inscort.util.DeviceUtils
 import com.kakao.vectormap.KakaoMapSdk
 import java.security.MessageDigest // [해결] 이게 없어서 에러난 겁니다!
 
 class InscortApp : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        if (!DeviceUtils.isEmulator()) {
+            KakaoMapSdk.init(this, BuildConfig.KAKAO_NATIVE_APP_KEY)
+        } else {
+            Log.d("InscortApp", "에뮬레이터 감지: KakaoMapSdk.init 생략")
+        }
 
         // 1. 지도 SDK 초기화
         KakaoMapSdk.init(this, BuildConfig.KAKAO_NATIVE_APP_KEY)

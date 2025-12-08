@@ -32,8 +32,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoKey
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoKey\"")
+        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
 
         buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
     }
@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0")
 
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 
 
     implementation(libs.androidx.core.ktx)

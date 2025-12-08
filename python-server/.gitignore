@@ -7,3 +7,6 @@ crawler/cookies/
 .venv/
 env/
 ENV/
+
+.vs/
+cookies.json
