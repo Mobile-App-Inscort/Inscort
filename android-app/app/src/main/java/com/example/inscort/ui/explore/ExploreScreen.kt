@@ -1,7 +1,6 @@
 package com.example.inscort.ui.explore
 
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,67 +41,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.inscort.R
 import com.example.inscort.core.model.Place
-import com.example.inscort.core.ocr.OcrService
-import com.example.inscort.data.api.KakaoNaviApi
-import com.example.inscort.data.api.KakaoRetrofitProvider
-import com.example.inscort.data.local.DatabaseProvider
-import com.example.inscort.data.repository.MlKitOcrService
-import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.ui.common.KakaoMapController
 import com.example.inscort.ui.common.KakaoMapView
-import com.google.mlkit.vision.common.InputImage
-import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen(
+    viewModel: CourseDiscoveryViewModel,               // 🔹 MainActivity에서 넘겨준 VM 그대로 사용
     onBack: () -> Unit,
     onNavigateToBuilder: (List<Place>) -> Unit
 ) {
-    val context = LocalContext.current
 
-    // ViewModel 생성
-    val viewModel: CourseDiscoveryViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val db = DatabaseProvider.get(context)
-                val placeDao = db.placeDao()
-                val ocrService: OcrService = MlKitOcrService()
-                val naviApi = KakaoNaviApi.create()
-                val placeRepository = PlaceRepository(
-                    placeDao = placeDao,
-                    naviApi = naviApi,
-                    localApi = KakaoRetrofitProvider.localApi,
-                    kakaoApiKey = com.example.inscort.BuildConfig.KAKAO_REST_API_KEY
-                )
-                return CourseDiscoveryViewModel(
-                    ocrService = ocrService,
-                    placeRepository = placeRepository
-                ) as T
-            }
-        }
-    )
-
-    // 진입 시 샘플 이미지로 OCR 수행
-    LaunchedEffect(Unit) {
-        val resId = R.drawable.image
-        val bitmap = BitmapFactory.decodeResource(context.resources, resId)
-        val inputImage = InputImage.fromBitmap(bitmap, 0)
-        viewModel.runOcr(listOf(inputImage to "sample_drawable"))
-    }
-
-    // OCR + Kakao Local 결과
+    // OCR + Kakao Local 결과 상태
     val uiState by viewModel.uiState.collectAsState()
     val places = uiState.placeSuggestions
 
@@ -209,7 +168,9 @@ fun ExploreScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+
             // 1. 지도
+
             KakaoMapView(
                 modifier = Modifier.fillMaxSize(),
                 placeSuggestions = places,

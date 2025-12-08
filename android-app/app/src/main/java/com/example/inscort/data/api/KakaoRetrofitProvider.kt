@@ -31,5 +31,5 @@ object KakaoRetrofitProvider {
     }
 
     // (있으면) 내비 API도 같이
-    // val naviApi: KakaoNaviApi by lazy { retrofit.create(KakaoNaviApi::class.java) }
+     val naviApi: KakaoNaviApi by lazy { retrofit.create(KakaoNaviApi::class.java) }
 }

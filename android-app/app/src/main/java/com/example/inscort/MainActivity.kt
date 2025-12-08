@@ -16,15 +16,19 @@ import com.example.inscort.core.model.Place
 import com.example.inscort.ui.builder.CourseBuilderScreen
 import com.example.inscort.ui.detail.CourseDetailScreen
 import com.example.inscort.ui.explore.ExploreScreen // [중요] 우리가 만든 화면 Import
-import com.example.inscort.core.ocr.OcrService
+import androidx.compose.ui.platform.LocalContext
+import com.example.inscort.data.local.DatabaseProvider
+import com.example.inscort.data.api.KakaoRetrofitProvider
+import com.example.inscort.data.api.PythonRetrofitProvider
 import com.example.inscort.data.repository.MlKitOcrService
 import com.example.inscort.data.repository.PlaceRepository
+import com.example.inscort.core.ocr.OcrService
 import com.example.inscort.ui.appointment.appointmentCreateRoute
 import com.example.inscort.ui.appointment.appointmentNavigation
 import com.example.inscort.ui.appointment.encodeCourseTitle
 import com.example.inscort.ui.explore.CourseDiscoveryViewModel
-import com.example.inscort.ui.explore.OcrTestScreen
-import com.example.inscort.ui.theme.InscortTheme
+import com.example.inscort.ui.explore.InstagramLinkScreen
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -40,25 +44,64 @@ class MainActivity : ComponentActivity() {
                     // 1. 네비게이션 컨트롤러 생성 (길 안내자)
                     val navController = rememberNavController()
 
+
                     // 2. 화면 간 데이터 전달을 위한 임시 저장소
                     // (Explore에서 선택한 장소들을 여기에 담아서 Builder로 넘겨줌)
                     var selectedPlacesForBuilder by remember { mutableStateOf<List<Place>>(emptyList()) }
 
+                    val context = LocalContext.current
+                    val courseDiscoveryViewModel = remember {
+                        // DB & DAO
+                        val db = DatabaseProvider.get(context)
+                        val placeDao = db.placeDao()
+
+                        // Kakao API들
+                        val placeRepository = PlaceRepository(
+                            placeDao = placeDao,
+                            naviApi = KakaoRetrofitProvider.naviApi,
+                            localApi = KakaoRetrofitProvider.localApi
+                        )
+
+                        val ocrService: OcrService = MlKitOcrService()
+                        val crawlerApi = PythonRetrofitProvider.crawlerApi
+
+                        CourseDiscoveryViewModel(
+                            ocrService = ocrService,
+                            placeRepository = placeRepository,
+                            crawlerApi = crawlerApi
+                        )
+                    }
+
                     // 3. 네비게이션 호스트 (화면 갈아끼우는 틀)
                     NavHost(
                         navController = navController,
-                        startDestination = "explore" // 앱 켜지면 '탐색' 부터 시작
+                        startDestination = "instagram-link" // 앱 켜지면 '탐색' 부터 시작
                     ) {
 
                         // [화면 1] 탐색 화면 (Explore)
                         composable("explore") {
                             ExploreScreen(
+                                viewModel = courseDiscoveryViewModel,
                                 onBack = { finish() }, // 첫 화면에서 뒤로가기면 앱 종료
                                 onNavigateToBuilder = { places ->
                                     // (1) 선택한 장소 리스트를 임시 저장소에 담음
                                     selectedPlacesForBuilder = places
                                     // (2) 빌더 화면으로 이동!
                                     navController.navigate("builder")
+                                }
+                            )
+                        }
+
+                        // 🔹 새로 추가: 인스타 링크 분석 화면
+                        composable("instagram-link") {
+                            InstagramLinkScreen(
+                                viewModel = courseDiscoveryViewModel,
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToExplore = {
+                                    navController.navigate("explore") {
+                                        // 인스타 화면은 스택에서 날리고 탐색을 루트처럼 만들고 싶으면
+                                        popUpTo("instagram-link") { inclusive = true }
+                                    }
                                 }
                             )
                         }
