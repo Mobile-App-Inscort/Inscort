@@ -1,6 +1,7 @@
 # services/crawler_service.py
 from crawler.instagram_crawler import InstagramCrawler
 from crawler.image_downloader import download_and_upload_to_s3
+from services.s3_service import generate_presigned_url
 import os
 
 class CrawlerService:
@@ -27,7 +28,17 @@ class CrawlerService:
         # 4) 업로드
         s3_keys = download_and_upload_to_s3(image_urls, prefix)
 
+        # ⭐ 5) presigned URL 만들기
+        images = []
+        for key in s3_keys:
+            presigned = generate_presigned_url(key)
+            images.append({
+                "key": key,
+                "url": presigned
+            })
+
+        # 6) 결과 반환
         return {
             "postId": post_id,
-            "images": s3_keys
+            "images": images
         }
