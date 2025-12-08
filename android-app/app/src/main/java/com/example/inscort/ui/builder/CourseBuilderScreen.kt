@@ -37,9 +37,7 @@ import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
 import com.example.inscort.data.local.db.AppDatabase
 import com.example.inscort.data.repository.PlaceRepository
-// ▼▼▼ [변경] 새로운 라이브러리 import ▼▼▼
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -60,17 +58,6 @@ fun CourseBuilderScreen(
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return CourseBuilderViewModel(repository) as T
             }
-        }
-    )
-
-    // ▼▼▼ [수정 1] 리스트 상태를 직접 만듭니다. ▼▼▼
-    val listState = rememberLazyListState()
-
-    // ▼▼▼ [수정 2] 만든 listState를 여기에 넣어줍니다. ▼▼▼
-    val state = rememberReorderableLazyListState(
-        lazyListState = listState,
-        onMove = { from, to ->
-            viewModel.moveItem(from.index, to.index)
         }
     )
 
@@ -98,9 +85,7 @@ fun CourseBuilderScreen(
         }
 
         // [2] 내용
-        Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
-        ) {
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
             Text("코스 이름", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -109,50 +94,30 @@ fun CourseBuilderScreen(
                 onValueChange = { viewModel.courseTitle = it },
                 placeholder = { Text("강남 데이트 코스") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFF8A80),
+                    unfocusedBorderColor = Color.LightGray
+                )
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("장소 순서 설정", style = MaterialTheme.typography.titleMedium)
+            Text("장소 순서 (드래그 미지원)", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // [변경] 드래그 리스트 구현
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                itemsIndexed(viewModel.places, key = { _, place -> place.id }) { index, place ->
-
-                    // [변경] ReorderableItem 사용법 변경
-                    ReorderableItem(state, key = place.id) { isDragging ->
-                        val elevation = animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-
-                        DraggablePlaceItem(
-                            index = index + 1,
-                            place = place,
-                            // ★ 여기가 핵심: 핸들에 드래그 기능 부여
-                            handleModifier = Modifier.draggableHandle(),
-                            modifier = Modifier.shadow(elevation.value)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                item {
-                    AddPlaceButton {}
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                itemsIndexed(viewModel.places) { index, place ->
+                    // 드래그 기능 뺀 순수 아이템
+                    DraggablePlaceItem(index + 1, place)
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
 
-        // [3] 하단 버튼
+        // 하단 버튼
         Button(
-            onClick = {
-                viewModel.saveCourse { courseId -> onSaveComplete(courseId) }
-            },
+            onClick = { viewModel.saveCourse { id -> onSaveComplete(id) } },
             enabled = viewModel.isSaveEnabled,
             modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
             colors = ButtonDefaults.buttonColors(

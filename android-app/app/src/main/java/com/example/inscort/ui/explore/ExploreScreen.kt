@@ -88,7 +88,21 @@ fun ExploreScreen(
             // 1. 지도 (배경)
             KakaoMapView(
                 modifier = Modifier.fillMaxSize(),
-                onMapReady = { mapController = KakaoMapController(it) }
+                onMapReady = { kakaoMap ->
+                    val controller = KakaoMapController(kakaoMap)
+                    mapController = controller
+
+                    // ▼▼▼ [추가] 마커 클릭 리스너 등록! ▼▼▼
+                    controller.setOnMarkerClickListener { markerName ->
+                        // 1. 이름으로 장소 찾기
+                        val clickedPlace = places.find { it.name == markerName }
+
+                        // 2. 찾았으면 선택(Toggle) 하기
+                        if (clickedPlace != null) {
+                            viewModel.toggleSelection(clickedPlace)
+                        }
+                    }
+                }
             )
 
             // 2. [상단 왼쪽] 뒤로 가기 버튼

@@ -53,6 +53,7 @@ class CourseBuilderViewModel(
             )
 
             places.forEachIndexed { index, place ->
+                repository.insertPlace(place)
                 repository.insertCoursePlace(
                     CoursePlaceCrossRef(
                         courseId = newCourseId,

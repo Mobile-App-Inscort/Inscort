@@ -11,6 +11,8 @@ import com.kakao.vectormap.route.RouteLineOptions
 import com.kakao.vectormap.route.RouteLineSegment
 import com.kakao.vectormap.route.RouteLineStyle
 import com.kakao.vectormap.route.RouteLineStyles
+import com.kakao.vectormap.label.Label
+import com.kakao.vectormap.label.LabelLayer
 
 class KakaoMapController(private val kakaoMap: KakaoMap) {
 
@@ -91,5 +93,26 @@ class KakaoMapController(private val kakaoMap: KakaoMap) {
     fun clear() {
         kakaoMap.labelManager?.layer?.removeAll()
         kakaoMap.routeLineManager?.layer?.removeAll()
+    }
+
+    /**
+     * ★ [추가] 마커 클릭 이벤트 연결하기
+     * @param onClick: 마커가 클릭됐을 때 실행할 함수 (마커 이름을 돌려줌)
+     */
+    fun setOnMarkerClickListener(onClick: (String) -> Unit) {
+        kakaoMap.setOnLabelClickListener(object : KakaoMap.OnLabelClickListener {
+            override fun onLabelClicked(kakaoMap: KakaoMap, layer: LabelLayer, label: Label) {
+                // 1. 마커에 심어둔 이름(Tag) 가져오기
+                val markerName = label.tag?.toString() ?: ""
+
+                // 2. UI(화면)에 클릭된 이름 전달
+                onClick(markerName)
+
+                // 3. 로그 확인
+                Log.d("KakaoMap", "👆 마커 클릭됨: $markerName")
+
+                // ★ [중요] return true; 를 지웠습니다! (이제 Void 타입이라 리턴 안 함)
+            }
+        })
     }
 }

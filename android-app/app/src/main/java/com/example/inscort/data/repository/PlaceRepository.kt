@@ -6,6 +6,7 @@ import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
 import com.example.inscort.data.local.dao.PlaceDao
 import com.example.inscort.data.local.entity.CourseEntity
+import com.example.inscort.data.local.entity.PlaceEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -48,6 +49,21 @@ class PlaceRepository(
                 sourceUrl = null
             )
         }
+    }
+
+    // ▼▼▼ [추가] 장소를 DB에 저장하는 함수 ▼▼▼
+    suspend fun insertPlace(place: Place) = withContext(Dispatchers.IO) {
+        // UI용 모델(Place) -> DB용 모델(PlaceEntity) 변환
+        val entity = PlaceEntity(
+            id = place.id, // (Entity의 PK 이름이 id면 id로 수정하세요)
+            name = place.name,
+            address = place.address,
+            latitude = place.latitude,
+            longitude = place.longitude,
+            sourceUrl = place.sourceUrl
+            // 필요한 필드 다 채우기
+        )
+        placeDao.insertPlace(entity)
     }
 
     // 3. 길찾기 경로 가져오기 (기존 코드 유지)

@@ -1,15 +1,32 @@
 package com.example.inscort.ui.detail
 
 import CourseDetailViewModel
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.* // [중요] getValue, setValue가 여기 포함됨
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.inscort.R
+import coil.compose.AsyncImage
+import com.example.inscort.core.model.Place
 import com.example.inscort.data.api.KakaoNaviApi
 import com.example.inscort.data.local.db.AppDatabase
 import com.example.inscort.data.repository.PlaceRepository
@@ -19,15 +36,14 @@ import com.example.inscort.ui.common.KakaoMapView
 @Composable
 fun CourseDetailScreen(
     courseId: Long,
-    // onBack: () -> Unit // 필요시 추가
+    onBack: () -> Unit
 ) {
-    // 1. Repository 및 ViewModel 수동 주입 (Factory 패턴)
+    // Repository & ViewModel 생성
     val context = LocalContext.current
     val repository = remember {
         val db = AppDatabase.getInstance(context)
         PlaceRepository(db.placeDao(), KakaoNaviApi.create())
     }
-
     val viewModel: CourseDetailViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -37,53 +53,203 @@ fun CourseDetailScreen(
         }
     )
 
-    // 2. 초기화 (DB에서 코스 불러오기)
+    // 데이터 로드
     LaunchedEffect(courseId) {
         viewModel.loadCourse(courseId)
     }
 
-    // 3. 상태 구독
-    val places by viewModel.coursePlaces.collectAsState()
+    val places by viewModel.places.collectAsState()
     val routePoints by viewModel.routePoints.collectAsState()
+    val courseTitle by viewModel.courseTitle.collectAsState()
 
-    // 4. 지도 컨트롤러 상태
     var mapController by remember { mutableStateOf<KakaoMapController?>(null) }
 
-    // [로직 1] 장소 데이터가 로딩되면 마커 찍기
-    LaunchedEffect(places) {
-        // mapController가 null이 아니고, 장소가 있을 때만 실행
-        if (places.isNotEmpty()) {
-            mapController?.let { controller ->
-                controller.clear() // 기존 것 지우기
+    // 지도 그리기 (마커 + 경로)
+    LaunchedEffect(places, routePoints, mapController) {
+        if (places.isNotEmpty() && mapController != null) {
+            mapController?.clear()
 
-                // 마커 찍기
-                val coords = places.map { Pair(it.latitude, it.longitude) }
-                // [해결] addMarkers 호출 (KakaoMapController에 이 함수가 있어야 함!)
-                controller.addMarkers(coords, R.drawable.ic_marker)
+            // 1. 마커 찍기 (순서 번호 포함)
+            // TODO: 마커 아이콘을 순서별로 다르게 하거나(1,2,3..) 텍스트 추가 필요
+            val coords = places.map { Pair(it.latitude, it.longitude) }
+            mapController?.addMarkers(coords, com.example.inscort.R.drawable.ic_marker)
 
-                // 첫 번째 장소로 카메라 이동
-                controller.moveCamera(places.first().latitude, places.first().longitude)
+            // 2. 경로 그리기 (데이터가 왔을 때만)
+            if (routePoints.isNotEmpty()) {
+                mapController?.drawRoute(routePoints)
             }
+
+            // 3. 카메라 이동 (전체가 보이게)
+            mapController?.moveCamera(places[0].latitude, places[0].longitude)
         }
     }
 
-    // [로직 2] 경로 데이터가 들어오면 선 긋기
-    LaunchedEffect(routePoints) {
-        if (routePoints.isNotEmpty()) {
-            mapController?.let { controller ->
-                // [해결] drawRoute 호출
-                controller.drawRoute(routePoints)
-            }
-        }
-    }
-
-    // 5. UI 그리기
+    // 전체 화면 구조 (지도 위에 정보창이 올라온 형태)
     Box(modifier = Modifier.fillMaxSize()) {
-        KakaoMapView(
-            modifier = Modifier.fillMaxSize(),
-            onMapReady = { kakaoMap ->
-                mapController = KakaoMapController(kakaoMap)
+
+        // [1] 배경 지도 (화면의 40% 정도 차지)
+        Box(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+            KakaoMapView(
+                modifier = Modifier.fillMaxSize(),
+                onMapReady = { mapController = KakaoMapController(it) }
+            )
+
+            // 뒤로가기 버튼
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .padding(top = 48.dp, start = 16.dp)
+                    .size(40.dp)
+                    .background(Color.White, CircleShape)
+                    .shadow(4.dp, CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "back")
             }
-        )
+        }
+
+        // [2] 하단 상세 정보 시트 (스크롤 가능)
+        // DraggableScrollableSheet 등을 써도 되지만, 간단하게 Card로 구현
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 300.dp), // 지도 위로 겹쳐 올라오게
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+
+                // 핸들 바
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.LightGray)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 제목 & 요약
+                Text(courseTitle, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_myplaces), // 임시 아이콘
+                        contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("${places.size}개 장소", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("약 8.3km", color = Color.Gray, fontSize = 14.sp) // 거리 계산 로직 필요
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 버튼 (약속 잡기 / 공유하기)
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = { /* 약속 잡기 로직 */ },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF8A80)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("약속 잡기", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    OutlinedButton(
+                        onClick = { /* 공유 로직 */ },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("공유하기", color = Color.Black)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text("코스 상세", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 장소 리스트
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp) // 하단 여백
+                ) {
+                    itemsIndexed(places) { index, place ->
+                        CourseDetailItem(index + 1, place)
+
+                        // 아이템 사이 연결선 (선택 사항)
+                        if (index < places.lastIndex) {
+                            // 점선이나 화살표 등을 그릴 수 있음
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 32.dp) // 번호 중앙 정렬
+                                    .width(2.dp)
+                                    .height(20.dp)
+                                    .background(Color.LightGray)
+                            )
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(30.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TipBox() {
+    TODO("코스 이용 팁")
+}
+
+@Composable
+fun CourseDetailItem(index: Int, place: Place) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 번호 (분홍 동그라미)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color(0xFFFF8A80), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("$index", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 썸네일
+            AsyncImage(
+                model = place.sourceUrl ?: "",
+                contentDescription = null,
+                modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 정보
+            Column {
+                Text(place.name, fontWeight = FontWeight.Bold)
+                Text(place.address ?: "", fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("길찾기 >", fontSize = 12.sp, color = Color(0xFF448AFF))
+            }
+        }
     }
 }

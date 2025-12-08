@@ -75,10 +75,17 @@ class MainActivity : ComponentActivity() {
                             // URL에서 courseId 꺼내기
                             val courseId = backStackEntry.arguments?.getString("courseId")?.toLongOrNull() ?: 0L
 
-                            CourseDetailScreen(
-                                courseId = courseId
-                                // onBack = { navController.popBackStack() }
-                            )
+                            composable("detail/{courseId}") { backStackEntry ->
+                                // URL에서 courseId 꺼내기
+                                val courseId = backStackEntry.arguments?.getString("courseId")?.toLongOrNull() ?: 0L
+
+                                CourseDetailScreen(
+                                    courseId = courseId,
+
+                                    // ▼▼▼ [추가] 이 줄을 넣어주면 해결됩니다! ▼▼▼
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
                         }
                     }
                 }
