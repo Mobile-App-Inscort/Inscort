@@ -52,7 +52,7 @@ class PlaceRepository(
                 address = entity.address,
                 latitude = entity.latitude,
                 longitude = entity.longitude,
-                sourceUrl = null
+                sourceUrl = entity.sourceUrl
             )
         }
     }
@@ -135,7 +135,7 @@ class PlaceRepository(
                 address = doc.road_address_name?.takeIf { it.isNotEmpty() } ?: doc.address_name,
                 latitude = doc.y.toDouble(),
                 longitude = doc.x.toDouble(),
-                sourceUrl = null   // 필요하면 place_url 필드 추가해서 넣기
+                sourceUrl = doc.place_url   // 필요하면 place_url 필드 추가해서 넣기
             )
         }
         result
