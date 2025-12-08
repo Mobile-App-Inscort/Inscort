@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
                         // [화면 1] 탐색 화면 (Explore)
                         composable("explore") {
                             ExploreScreen(
+                                viewModel = courseDiscoveryViewModel,
                                 onBack = { finish() }, // 첫 화면에서 뒤로가기면 앱 종료
                                 onNavigateToBuilder = { places ->
                                     // (1) 선택한 장소 리스트를 임시 저장소에 담음
