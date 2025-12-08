@@ -1,6 +1,6 @@
 package com.example.inscort.ui.detail
 
-import CourseDetailViewModel
+import com.example.inscort.ui.detail.CourseDetailViewModel
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -44,7 +44,9 @@ import com.example.inscort.ui.common.KakaoMapView
 @Composable
 fun CourseDetailScreen(
     courseId: Long,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    showCreateAppointment: Boolean = true,
+    onCreateAppointment: (Long, String, Int) -> Unit
 ) {
     // Repository & ViewModel 생성
     val context = LocalContext.current
@@ -148,23 +150,35 @@ fun CourseDetailScreen(
 
                 // 버튼 (약속 잡기 / 공유하기)
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = { /* 약속 잡기 로직 */ },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF8A80)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("약속 잡기", fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    OutlinedButton(
-                        onClick = { /* 공유 로직 */ },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("공유하기", color = Color.Black)
+                    if (showCreateAppointment) {
+                        Button(
+                            onClick = { onCreateAppointment(courseId, courseTitle, places.size) },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF8A80)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("약속 잡기", fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        OutlinedButton(
+                            onClick = { /* 공유 로직 */ },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("공유하기", color = Color.Black)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { /* 공유 로직 */ },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("공유하기", color = Color.Black)
+                        }
                     }
                 }
 

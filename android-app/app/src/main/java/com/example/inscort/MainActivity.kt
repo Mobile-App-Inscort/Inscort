@@ -7,9 +7,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.inscort.core.model.Place
 import com.example.inscort.ui.builder.CourseBuilderScreen
 import com.example.inscort.ui.detail.CourseDetailScreen
@@ -17,6 +19,9 @@ import com.example.inscort.ui.explore.ExploreScreen // [중요] 우리가 만든
 import com.example.inscort.core.ocr.OcrService
 import com.example.inscort.data.repository.MlKitOcrService
 import com.example.inscort.data.repository.PlaceRepository
+import com.example.inscort.ui.appointment.appointmentCreateRoute
+import com.example.inscort.ui.appointment.appointmentNavigation
+import com.example.inscort.ui.appointment.encodeCourseTitle
 import com.example.inscort.ui.explore.CourseDiscoveryViewModel
 import com.example.inscort.ui.explore.OcrTestScreen
 import com.example.inscort.ui.theme.InscortTheme
@@ -77,15 +82,39 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // [화면 3] 코스 상세 (Detail)
-                        composable("detail/{courseId}") { backStackEntry ->
+                        composable(
+                            route = "detail/{courseId}?showCreateAppointment={showCreateAppointment}",
+                            arguments = listOf(
+                                navArgument("courseId") { type = NavType.LongType },
+                                navArgument("showCreateAppointment") {
+                                    type = NavType.BoolType
+                                    defaultValue = true
+                                }
+                            )
+                        ) { backStackEntry ->
                             // URL에서 courseId 꺼내기
-                            val courseId = backStackEntry.arguments?.getString("courseId")?.toLongOrNull() ?: 0L
+                            val courseId = backStackEntry.arguments?.getLong("courseId") ?: 0L
+                            val showCreateAppointment =
+                                backStackEntry.arguments?.getBoolean("showCreateAppointment") ?: true
 
                             CourseDetailScreen(
                                 courseId = courseId,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                showCreateAppointment = showCreateAppointment,
+                                onCreateAppointment = { targetCourseId, courseTitle, placeCount ->
+                                    val encodedTitle = encodeCourseTitle(courseTitle)
+                                    navController.navigate(
+                                        appointmentCreateRoute(
+                                            targetCourseId,
+                                            encodedTitle,
+                                            placeCount
+                                        )
+                                    )
+                                }
                             )
                         }
+
+                        appointmentNavigation(navController)
                     }
                 }
             }

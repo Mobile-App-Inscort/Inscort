@@ -1,3 +1,5 @@
+package com.example.inscort.ui.detail
+
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
