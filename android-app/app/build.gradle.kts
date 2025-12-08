@@ -30,22 +30,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-<<<<<<< HEAD
-        // [키 설정]
-        manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoKey
-        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoKey\"")
-
-        // ▼▼▼ [복구] 에뮬레이터 지도 실행을 위해 필수! ▼▼▼
-        ndk {
-            abiFilters.add("arm64-v8a")
-            abiFilters.add("armeabi-v7a")
-        }
-=======
         manifestPlaceholders["KAKAO_NATIVE_APP_KEY"] = kakaoNativeKey
         buildConfigField("String", "KAKAO_NATIVE_APP_KEY", "\"$kakaoNativeKey\"")
 
         buildConfigField("String", "KAKAO_REST_API_KEY", "\"$kakaoRestKey\"")
->>>>>>> 48b25d15d497bbc17a090c46715827689fbd0317
     }
 
     buildTypes {
@@ -83,17 +71,15 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-<<<<<<< HEAD
     // ✅ Compose BOM로 통일
     val composeBom = platform("androidx.compose:compose-bom:2025.12.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
-=======
+
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 
->>>>>>> 48b25d15d497bbc17a090c46715827689fbd0317
 
     // ✅ Compose 핵심(버전 표기 금지)
     implementation("androidx.compose.ui:ui")
