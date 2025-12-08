@@ -11,7 +11,8 @@ data class KakaoPlaceDocument(
     val address_name: String,
     val road_address_name: String?,
     val x: String,  // longitude
-    val y: String   // latitude
+    val y: String,   // latitude
+    val place_url: String
 )
 
 data class KakaoSearchResponse(
