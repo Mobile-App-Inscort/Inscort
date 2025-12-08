@@ -1,5 +1,8 @@
 package com.example.inscort.ui.explore
 
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,8 +14,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +60,8 @@ import com.example.inscort.data.repository.MlKitOcrService
 import com.example.inscort.data.repository.PlaceRepository
 import com.example.inscort.ui.common.KakaoMapController
 import com.example.inscort.ui.common.KakaoMapView
-import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +71,7 @@ fun ExploreScreen(
 ) {
     val context = LocalContext.current
 
-    // ✅ 옵션 A: ExploreViewModel → CourseDiscoveryViewModel 로 교체
+    // ViewModel 생성
     val viewModel: CourseDiscoveryViewModel = viewModel(
         factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -71,51 +94,90 @@ fun ExploreScreen(
         }
     )
 
-    // 🔥 화면 진입 시, drawable 샘플 이미지로 OCR 한 번 실행
+    // 진입 시 샘플 이미지로 OCR 수행
     LaunchedEffect(Unit) {
-        val resId = R.drawable.image   // OcrTestScreen에서 쓰던 샘플 이미지
+        val resId = R.drawable.image
         val bitmap = BitmapFactory.decodeResource(context.resources, resId)
         val inputImage = InputImage.fromBitmap(bitmap, 0)
-
-        viewModel.runOcr(
-            listOf(inputImage to "sample_drawable")
-        )
+        viewModel.runOcr(listOf(inputImage to "sample_drawable"))
     }
 
-    // 🔁 OCR + Kakao Local 결과 상태
+    // OCR + Kakao Local 결과
     val uiState by viewModel.uiState.collectAsState()
     val places = uiState.placeSuggestions
 
-    // ✅ 선택된 장소는 화면 쪽에서 로컬 state 로 관리
+    // 선택된 장소 리스트
     val selectedPlaces = remember { mutableStateListOf<Place>() }
 
-    // 새로운 장소 목록이 들어오면 선택 상태 초기화
-    LaunchedEffect(places) {
-        selectedPlaces.clear()
-    }
+    // 마커로 “선택(포커스)”된 장소 (사이드 카드용)
+    var focusedPlace by remember { mutableStateOf<Place?>(null) }
 
+    // 지도 컨트롤러
     var mapController by remember { mutableStateOf<KakaoMapController?>(null) }
 
-    // 마커 찍기 로직
-    LaunchedEffect(places, mapController) {
+    // 초기 한 번만 카메라 이동했는지 여부
+    var initialCameraMoved by remember { mutableStateOf(false) }
+
+    // 장소 목록이 새로 들어올 때는 선택/포커스 초기화
+    LaunchedEffect(places) {
+        selectedPlaces.clear()
+        focusedPlace = null
+        initialCameraMoved = false
+    }
+
+    // 마커 다시 그리는 로직 (선택 여부에 따라 아이콘 달리)
+    LaunchedEffect(places, selectedPlaces.toList(), mapController) {
         if (places.isNotEmpty() && mapController != null) {
             mapController?.clear()
+            places.forEach { place ->
+                val iconResId =
+                    if (selectedPlaces.contains(place)) R.drawable.ic_marker_selected
+                    else R.drawable.ic_marker
 
-            val coords = places.map { it.latitude to it.longitude }
-            mapController?.addMarkers(coords, R.drawable.ic_marker)
+                mapController?.addMarker(
+                    lat = place.latitude,
+                    lng = place.longitude,
+                    name = place.name,
+                    iconResId = iconResId
+                )
+            }
+            // 🔹 처음 한 번만 기본 위치로 카메라 이동
+            if (!initialCameraMoved) {
+                mapController?.moveCamera(places[0].latitude, places[0].longitude)
+                initialCameraMoved = true
+            }
+        }
+    }
 
-            mapController?.moveCamera(places[0].latitude, places[0].longitude)
+    // 마커 클릭 리스너: 항상 최신 places 기준으로 동작
+    LaunchedEffect(mapController, places) {
+        val controller = mapController ?: return@LaunchedEffect
 
-            android.util.Log.d("MapDebug", "마커 찍기 성공! 지도 준비됨.")
-        } else {
-            android.util.Log.d(
-                "MapDebug",
-                "대기 중... (데이터: ${places.size}개, 지도: ${if (mapController == null) "X" else "O"})"
-            )
+        controller.setOnMarkerClickListener { markerName ->
+            val clickedPlace = places.find { it.name == markerName }
+            if (clickedPlace != null) {
+                // 선택 토글
+                if (selectedPlaces.contains(clickedPlace)) {
+                    selectedPlaces.remove(clickedPlace)
+                } else {
+                    selectedPlaces.add(clickedPlace)
+                }
+
+                // 사이드 상세 카드용 포커스
+                focusedPlace = clickedPlace
+
+                // 카메라 이동
+                controller.moveCamera(
+                    lat = clickedPlace.latitude,
+                    lng = clickedPlace.longitude,
+                    zoomLevel = 17
+                )
+            }
         }
     }
 
     val scaffoldState = rememberBottomSheetScaffoldState()
+    val scope = rememberCoroutineScope()
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -129,6 +191,8 @@ fun ExploreScreen(
                     } else {
                         selectedPlaces.add(place)
                     }
+                    // ⬆️ 바텀시트에서 클릭 시에는 “선택만” 바꾸고
+                    //    focusedPlace 는 건드리지 않는다
                 },
                 onConfirm = {
                     onNavigateToBuilder(selectedPlaces.toList())
@@ -145,11 +209,13 @@ fun ExploreScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // 1. 지도 (배경) – 에뮬레이터면 안내 + 리스트만, 실기기면 실제 카카오맵
+            // 1. 지도
             KakaoMapView(
                 modifier = Modifier.fillMaxSize(),
                 placeSuggestions = places,
-                onMapReady = { mapController = KakaoMapController(it) }
+                onMapReady = { kakaoMap ->
+                    mapController = KakaoMapController(kakaoMap)
+                }
             )
 
             // 2. 상단 왼쪽 뒤로가기 버튼
@@ -169,7 +235,7 @@ fun ExploreScreen(
                 )
             }
 
-            // 3. 상단 오른쪽 "N개 장소 추출됨" 칩
+            // 3. 상단 오른쪽 “N개 장소 추출됨” 칩
             if (places.isNotEmpty()) {
                 Surface(
                     modifier = Modifier
@@ -187,11 +253,20 @@ fun ExploreScreen(
                     )
                 }
             }
+
+            // 4. 오른쪽 사이드 상세 카드 (마커 클릭 시에만 표시)
+            if (focusedPlace != null) {
+                FocusedPlaceCard(
+                    focusedPlace = focusedPlace!!,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp, top = 72.dp, bottom = 24.dp)
+                )
+            }
         }
     }
 }
 
-// ▼▼▼ 바텀시트 내부 UI (리스트 + 버튼) ▼▼▼
 @Composable
 fun BottomSheetContent(
     places: List<Place>,
@@ -206,6 +281,7 @@ fun BottomSheetContent(
             .fillMaxWidth()
             .heightIn(max = 600.dp)
     ) {
+        // 상단 그립바
         Box(
             modifier = Modifier
                 .padding(top = 12.dp, bottom = 8.dp)
@@ -216,6 +292,7 @@ fun BottomSheetContent(
                 .align(Alignment.CenterHorizontally)
         )
 
+        // 제목
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -230,6 +307,7 @@ fun BottomSheetContent(
 
         Divider(color = Color(0xFFF5F5F5), thickness = 1.dp)
 
+        // 장소 리스트
         LazyColumn(
             modifier = Modifier.weight(1f)
         ) {
@@ -242,6 +320,7 @@ fun BottomSheetContent(
             }
         }
 
+        // 하단 버튼
         Button(
             onClick = onConfirm,
             enabled = isReady,
@@ -322,6 +401,66 @@ fun PlaceListItem(
                 tint = Color.White,
                 modifier = Modifier.size(16.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun FocusedPlaceCard(
+    focusedPlace: Place,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = modifier
+            .width(260.dp)
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(focusedPlace.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                focusedPlace.address ?: "주소 정보 없음",
+                fontSize = 13.sp,
+                color = Color.Gray,
+                maxLines = 2
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (!focusedPlace.sourceUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = focusedPlace.sourceUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // 카카오맵 상세 보기 (현재는 sourceUrl을 외부 URL이라고 가정)
+            if (!focusedPlace.sourceUrl.isNullOrBlank()) {
+                Text(
+                    text = "카카오맵에서 상세 정보 보기",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(focusedPlace.sourceUrl)
+                        )
+                        context.startActivity(intent)
+                    }
+                )
+            }
         }
     }
 }

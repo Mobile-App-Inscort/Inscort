@@ -76,14 +76,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // [화면 3] 코스 상세 (Detail) - 아직 연결할 준비만
+                        // [화면 3] 코스 상세 (Detail)
                         composable("detail/{courseId}") { backStackEntry ->
                             // URL에서 courseId 꺼내기
                             val courseId = backStackEntry.arguments?.getString("courseId")?.toLongOrNull() ?: 0L
 
                             CourseDetailScreen(
-                                courseId = courseId
-                                // onBack = { navController.popBackStack() }
+                                courseId = courseId,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

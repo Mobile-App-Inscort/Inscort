@@ -1,3 +1,4 @@
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.inscort.core.model.Place
@@ -9,10 +10,13 @@ import kotlinx.coroutines.launch
 class CourseDetailViewModel(
     private val repository: PlaceRepository // A-2가 만든 저장소
 ) : ViewModel() {
+    // 1. 코스 이름 (DB에서 가져올 예정)
+    private val _courseTitle = MutableStateFlow("로딩 중...")
+    val courseTitle = _courseTitle.asStateFlow()
 
     // 1. 화면에 보여줄 장소들 (마커용)
-    private val _coursePlaces = MutableStateFlow<List<Place>>(emptyList())
-    val coursePlaces = _coursePlaces.asStateFlow()
+    private val _places = MutableStateFlow<List<Place>>(emptyList())
+    val places = _places.asStateFlow()
 
     // 2. 화면에 그려줄 경로 좌표들 (선 그리기용 - ★핵심)
     private val _routePoints = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
@@ -21,22 +25,25 @@ class CourseDetailViewModel(
     // 초기화: DB에서 코스 정보 가져오기
     fun loadCourse(courseId: Long) {
         viewModelScope.launch {
-            val places = repository.getPlacesByCourseId(courseId)
-            _coursePlaces.value = places
+            // (1) DB에서 장소 리스트 가져오기
+            val loadedPlaces = repository.getPlacesByCourseId(courseId)
+            Log.d("CourseDetailViewModel", "loadedPlaces size=${loadedPlaces.size}")
+            _places.value = loadedPlaces
 
-            // 장소가 2개 이상이면 바로 길찾기 API 호출!
-            if (places.size >= 2) {
-                getRouteData(places)
+            // TODO: CourseEntity도 가져와서 title 채우는 로직 추가 필요
+            _courseTitle.value = "나의 데이트 코스"
+
+            // (2) 장소가 2개 이상이면 길찾기 API 호출!
+            if (loadedPlaces.size >= 2) {
+                try {
+                    val routeData = repository.getRoute(loadedPlaces)
+                    _routePoints.value = routeData
+                } catch (e: Exception) {
+                    Log.e("CourseDetail", "길찾기 실패: ${e.message}")
+                }
             }
         }
     }
-
-    // ★ [해결] 이 함수가 없어서 에러났던 것!
-    fun getRouteData(places: List<Place>) {
-        viewModelScope.launch {
-            // Repository(백엔드 역할)에게 경로 데이터 요청
-            val routeData = repository.getRoute(places)
-            _routePoints.value = routeData
-        }
     }
-}
+
+

@@ -53,10 +53,11 @@ class CourseBuilderViewModel(
             )
 
             places.forEachIndexed { index, place ->
+                val placeId = repository.insertPlace(place)
                 repository.insertCoursePlace(
                     CoursePlaceCrossRef(
                         courseId = newCourseId,
-                        placeId = place.id,
+                        placeId = placeId,
                         orderIndex = index, // 변경된 순서대로 저장됨
                         memo = null
                     )
