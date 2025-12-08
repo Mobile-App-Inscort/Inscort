@@ -2,12 +2,13 @@
 from flask import Flask, request, jsonify
 from services.crawler_service import CrawlerService
 from dotenv import load_dotenv
+from services.s3_service import generate_presigned_url
 
 load_dotenv()
 
 app = Flask(__name__)
 
-@app.route("/crawl", methods=["POST"])
+@app.route("/api/crawl", methods=["POST"])
 def crawl():
     data = request.json
     url = data.get("url")
@@ -18,6 +19,25 @@ def crawl():
     try:
         result = CrawlerService.crawl_and_upload(url)
         return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/api/presigned", methods=["POST"])
+def presigned():
+    data = request.json
+    keys = data.get("keys")
+
+    if not keys or not isinstance(keys, list):
+        return jsonify({"error": "keys must be a list"}), 400
+
+    try:
+        result = {}
+        for key in keys:
+            url = generate_presigned_url(key)
+            result[key] = url
+
+        return jsonify({"urls": result})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
