@@ -10,7 +10,7 @@ object PythonRetrofitProvider {
 
     // 여기 포트는 FastAPI/uvicorn 포트로 맞춰줘 (예: 8000, 9000 등)
     // 에뮬레이터에서 PC의 localhost는 10.0.2.2
-    private const val BASE_URL = "http://10.0.2.2:9000/"
+    private const val BASE_URL = "http://13.209.221.176:9000/"
 
     private val client: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {

@@ -3,5 +3,6 @@
     <!-- 개발용: 10.0.2.2 로의 HTTP 허용 -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">13.209.221.176</domain>
     </domain-config>
 </network-security-config>
