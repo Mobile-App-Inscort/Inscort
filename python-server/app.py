@@ -12,20 +12,22 @@ app = Flask(__name__)
 
 @app.route("/api/crawl", methods=["POST"])
 def crawl():
+    print("1️⃣ crawl api hit", flush=True)
+
     data = request.json
     url = data.get("url")
-
-    if not url:
-        return jsonify({"error": "url is required"}), 400
+    print("2️⃣ url:", url, flush=True)
 
     try:
+        print("3️⃣ before crawler", flush=True)
         result = CrawlerService.crawl_and_upload(url)
+        print("4️⃣ after crawler", flush=True)
         return jsonify(result)
     except Exception as e:
-        print("[ERROR] /api/crawl failed")
+        print("[ERROR] /api/crawl failed", flush=True)
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route("/api/presigned", methods=["POST"])
 def presigned():
     data = request.json
