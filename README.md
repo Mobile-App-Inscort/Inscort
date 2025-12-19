@@ -90,6 +90,75 @@ Inscort/
 └── README.md
 ```
 
+## Inscort Android App
+
+Inscort is an Android application built with **Jetpack Compose** that allows users to discover places, build custom courses, and view them on an interactive map.
+
+This project follows a **practical MVVM + Repository architecture**, commonly used in Android applications.
+
+---
+
+## Architecture
+
+- **UI Layer**
+  - Jetpack Compose screens
+  - Handles rendering and user interaction only
+
+- **ViewModel Layer**
+  - Manages UI state using `StateFlow`
+  - Calls repositories and exposes data to UI
+
+- **Repository Layer**
+  - Acts as a data bridge between local database and network APIs
+  - No domain separation or use-case layer (non-DDD)
+
+- **Data Layer**
+  - Room (local database)
+  - Retrofit (network communication)
+
+---
+
+## Key Features
+
+- Place discovery using Kakao Local API
+- Course creation with manual ordering of places
+- Course data stored locally using Room
+- Course detail screen with:
+  - Kakao Map markers
+  - Route polyline drawing
+  - Bottom sheet UI (Material 3)
+- OCR support using:
+  - ML Kit (on-device)
+  - External Python OCR server (REST API)
+
+---
+
+## Map Integration
+
+- Kakao Map SDK integrated with Jetpack Compose
+- Custom `KakaoMapController` used to:
+  - Add markers
+  - Draw routes
+  - Control camera movement
+
+---
+
+## Build & Execution
+
+- The app is built as a standard Android APK
+- External services (Kakao API, Python OCR server) are accessed via network
+- Python code is **not embedded** in the APK and runs separately
+
+---
+
+## Summary
+
+This project focuses on:
+- Clear separation of UI, state, and data handling
+- Real-world Android architecture without DDD complexity
+- Practical integration of maps, databases, and network APIs
+
+
 ---
 
 # 👥 팀 구성 (Roles)
@@ -98,7 +167,7 @@ Inscort/
 | --- | ------------- | ------------------------------------------------ |
 | 조윤경 | Backend       | Python, Flask, Selenium (인스타 크롤링 API)            |
 | 남지후 | App – OCR/검색  | Firebase ML Kit, Kakao Local API, 데이터 파싱 & 좌표 변환 |
-| 강성경 | App – 지도/경로   | Kakao Map SDK, Mobility API, Polyline 시각화, 지도 UI |
+| 강성경 | App – map&navigation  | Kakao Map SDK, Mobility API, Polyline 시각화, 지도 UI |
 | 이예나 | App – Auth/DB | Firebase Auth, Firestore CRUD, MY 코스 관리 화면       |
 
 ---
@@ -160,3 +229,32 @@ style: 포맷/세미콜론 등
   **새로운 데이트 플래닝 경험** 제공
 
 ---
+
+## Map & Navigation Implementation
+
+I implemented the map-related features using the **Kakao Map SDK** and integrated them with **Jetpack Compose**.
+
+### Map Rendering
+- Embedded Kakao Map into Compose using `AndroidView`
+- Managed map lifecycle and state through a custom controller (`KakaoMapController`)
+
+### Marker Management
+- Displayed course places as map markers
+- Dynamically added and cleared markers based on course data
+- Supported ordered markers to reflect the sequence of places in a course
+
+### Route Drawing
+- Requested route data from Kakao Navigation API
+- Parsed route polyline coordinates
+- Drew routes directly on the map using polyline overlays
+
+### Camera Control
+- Automatically moved the camera to fit course locations
+- Updated camera position when course data changed
+
+### Compose Integration
+- Connected map updates with `StateFlow` and `LaunchedEffect`
+- Ensured map rendering reacts to data changes without recreating the map view
+
+This implementation focuses on **real-time data-driven map updates** while keeping the UI responsive and lifecycle-safe within a Compose-based architecture.
+
